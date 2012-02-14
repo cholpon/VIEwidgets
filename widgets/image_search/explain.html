@@ -22,23 +22,18 @@
     First, we need to include the dependencies in the header:
     <br /><br />
         <pre class="sh_javascript_dom">
-&lt;head>
 ...
-    &lt;!--  jQuery &amp; jQuery UI -->
-    &lt;script type="text/javascript" src="../../lib/jquery-1.6.1.js">&lt;/script>
-    &lt;script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js">&lt;/script>
-    
-    &lt;!--  VIE dependencies: Underscore &amp; Backbone -->
-    &lt;script type="text/javascript" src="../../lib/underscore.js">&lt;/script>        
-    &lt;script type="text/javascript" src="../../lib/backbone.js">&lt;/script>
-      
-    &lt;!-- vie.js itself -->
-    &lt;script type="text/javascript" src="../../lib/vie.js">&lt;/script>
-    &lt;script type="text/javascript" src="../../utils/schemaOrg/schema.json">&lt;/script>
-    &lt;script type="text/javascript" src="../../utils/schemaOrg/wrapper.js">&lt;/script>
-    
-    &lt;!--  the current VIE widget -->
-    &lt;script type="text/javascript" src="./vie.widget.image_search.js">&lt;/script>
+&lt;!--  vie.js including dependencies -->
+&lt;script type="text/javascript" src="../../lib/vie-ALL-2.0.0alpha1.debug.js">&lt;/script>
+&lt;script type="text/javascript" src="../../lib/jquery.rdfquery.js">&lt;/script>
+
+&lt;script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js">&lt;/script>
+  
+&lt;!-- vie.js itself -->
+&lt;script type="text/javascript" src="../../lib/vie.js">&lt;/script>
+
+&lt;!--  the current VIE widget -->
+&lt;script type="text/javascript" src="./vie.widget.image_search.js">&lt;/script>
 ...
 </pre>
 <br />
@@ -49,32 +44,37 @@ Now, we can read-in the embedded <a target="_blank" href="">RDFa</a> annotations
         $(function() {
             // initialize a global VIE object
             var myVIE = window.myVIE = new VIE();
-            myVIE.loadSchemaOrg();
-            
-            // read RDFa from the text below
-            myVIE.use(new myVIE.RdfaService);
-            myVIE.load({element: $('[about]')})
-            .from('rdfa').execute();
-</pre>
-<br />This is executed asynchronously, but fast, so we do not care about concurrency problems for now. What
-we do now is to set up the widget:
-<br /><br />
-<pre class="sh_javascript_dom">
-            // set-up of the Flickr-widget
-            $('#image_container')
-            .vieImageSearch({
-                vie    : myVIE,
-            	bin_size: 8,
-                services : {
-                    flickr : {
-                        api_key : "ffd6f2fc41249feeddd8e62a531dc83e",
-                    	use: true
-                    },
-                    gimage : {
-                        use: true
-                    }
+            myVIE.loadSchema("../../utils/schemaOrg/all.json", {
+                baseNS : "http://schema.org/",
+                success : function () {
+                    setUp();
+                },
+                error : function (e) {
+                    console.log("could not load schema.org ontology!");
                 }
             });
+            function setUp () {
+                // read RDFa from the text below
+                myVIE.use(new myVIE.RdfaService);
+                myVIE.load({element: $('[about]')})
+                .from('rdfa').execute();
+            
+                // set-up of the Flickr-widget
+                $('#image_container')
+                .vieImageSearch({
+                    vie    : myVIE,
+                	bin_size: 8,
+                    services : {
+                        flickr : {
+                            api_key : "ffd6f2fc41249feeddd8e62a531dc83e",
+                        	use: true
+                        },
+                        gimage : {
+                            use: true
+                        }
+                    }
+                });
+            }
 </pre>
 <br />
 And finally, registering the annotated RDFa elements with a <i>click-event handler</i> to trigger the semantic

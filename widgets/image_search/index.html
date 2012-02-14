@@ -4,23 +4,15 @@
     
     <link href="../../utils/style.css" media="screen" rel="stylesheet">
     
-    <!--  jQuery &amp; jQuery UI -->
-	<script type="text/javascript" src="../../lib/jquery-1.6.1.js"></script>
+    <!-- vie.js including dependencies -->
+    <script type="text/javascript" src="../../lib/vie-ALL-2.0.0alpha1.debug.js"></script>
+    <script type="text/javascript" src="../../lib/jquery.rdfquery.js"></script>   
+    
+    <!-- jQuery UI -->
     <script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js"></script>
-        
-    <!-- jQuery TipTip plugin -->
     <script type="text/javascript"          src="../../utils/tiptip/jquery.tipTip.js"></script>
     <link rel="stylesheet" type="text/css" href="../../utils/tiptip/jquery.tipTip.css" media="screen" />
     
-    <!--  VIE dependencies: Underscore &amp; Backbone -->
-    <script type="text/javascript" src="../../lib/underscore.js"></script>        
-    <script type="text/javascript" src="../../lib/backbone.js"></script>
-      
-    <!-- vie.js itself -->
-	<script type="text/javascript" src="../../lib/vie.js"></script>
-	<script type="text/javascript" src="../../utils/schemaOrg/schema.json"></script>
-	<script type="text/javascript" src="../../utils/schemaOrg/wrapper.js"></script>
-	
     <!--  the current VIE widget -->
 	<script type="text/javascript" src="./vie.widget.image_search.js"></script>
 
@@ -30,48 +22,59 @@
         $(function() {
             // initialize a global VIE object
             var myVIE = window.myVIE = new VIE();
-            myVIE.loadSchemaOrg();
-            
-            // read RDFa from the text below
-            myVIE.use(new myVIE.RdfaService);
-            myVIE.load({element: $('[about]')})
-            .from('rdfa').execute();
-            
-            var moreButton = $('<button>')
-            .addClass("more-button")
-            .text("More images...")
-            .click(function () {
-                var widget = $('#image_container').data("vieImageSearch");
-                widget.triggerSearch(widget.options.entity, widget.options.page_num+1);
-            });
-            
-            // set-up of the Image-widget
-            $('#image_container')
-            .before(moreButton)
-            .vieImageSearch({
-                vie    : myVIE,
-            	bin_size: 8,
-                services : {
-                    flickr : {
-                        api_key : "ffd6f2fc41249feeddd8e62a531dc83e",
-                    	use: false
-                    },
-                    gimage : {
-                        use: true
-                    }
+            myVIE.loadSchema("../../utils/schemaOrg/all.json", {
+                baseNS : "http://schema.org/",
+                success : function () {
+                    // read RDFa from the text below
+                    myVIE.use(new myVIE.RdfaService);
+                    myVIE.load({element: $('[about]')})
+                    .using('rdfa').execute();
+                    
+                    finishSetUp();
+                },
+                error : function (e) {
+                    console.log("could not load schema.org ontology!");
                 }
             });
-
-            $('[about]')
-            .click(function (ev) {
-                var uri = $(this).attr('about');
+            
+            function finishSetUp () {
+                var moreButton = $('<button>')
+                    .addClass("more-button")
+                    .text("More images...")
+                    .click(function () {
+                        var widget = $('#image_container').data("vieImageSearch");
+                        widget.triggerSearch(widget.options.entity, widget.options.page_num+1);
+                    });
+                    
+                // set-up of the Image-widget
                 $('#image_container')
+                .before(moreButton)
                 .vieImageSearch({
-                    entity: uri
+                    vie    : myVIE,
+                    bin_size: 8,
+                    services : {
+                        flickr : {
+                            api_key : "ffd6f2fc41249feeddd8e62a531dc83e",
+                            use: false
+                        },
+                        gimage : {
+                            use: true
+                        }
+                    }
                 });
-            })
-            .attr("title", "Click on an entity to trigger a type-specific photo search.")
-            .tipTip();
+    
+                $('[about]')
+                .click(function (ev) {
+                    var uri = $(this).attr('about');
+                    $('#image_container')
+                    .vieImageSearch({
+                        entity: uri
+                    });
+                })
+                .attr("title", "Click on an entity to trigger a type-specific photo search.")
+                .tipTip();
+            }
+            
         });
     </script>
     
@@ -84,7 +87,7 @@
             box-shadow: 0px 0px 10px #555;
             margin: 1em 1em;
             width: 6em;
-            height: 6em;
+            height: auto;
         }
     </style>
     
