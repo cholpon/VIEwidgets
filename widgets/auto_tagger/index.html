@@ -4,24 +4,15 @@
     
     <link href="../../utils/style.css" media="screen" rel="stylesheet">
     
-    <!--  jQuery &amp; jQuery UI -->
-	<script type="text/javascript" src="../../lib/jquery-1.6.1.js"></script>
+    <!-- vie.js including dependencies -->
+    <script type="text/javascript" src="../../lib/vie-ALL-2.0.0alpha1.debug.js"></script>
+    <script type="text/javascript" src="../../lib/jquery.rdfquery.js"></script>   
+    
+    <!-- jQuery UI -->
     <script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js"></script>
-        
-    <!-- jQuery TipTip plugin -->
     <script type="text/javascript"          src="../../utils/tiptip/jquery.tipTip.js"></script>
     <link rel="stylesheet" type="text/css" href="../../utils/tiptip/jquery.tipTip.css" media="screen" />
     
-    <!--  VIE dependencies: Underscore &amp; Backbone -->
-    <script type="text/javascript" src="../../lib/rdfquery.js"></script>        
-    <script type="text/javascript" src="../../lib/underscore.js"></script>        
-    <script type="text/javascript" src="../../lib/backbone.js"></script>
-      
-    <!-- vie.js itself -->
-	<script type="text/javascript" src="../../lib/vie.js"></script>
-	<script type="text/javascript" src="../../utils/schemaOrg/schema.json"></script>
-	<script type="text/javascript" src="../../utils/schemaOrg/wrapper.js"></script>
-	
     <!--  the current VIE widget -->
 	<script type="text/javascript" src="./vie.widget.auto_tagger.js"></script>
 
@@ -31,7 +22,15 @@
         $(function() {
             // initialize a global VIE object
             var myVIE = window.myVIE = new VIE();
-            myVIE.loadSchemaOrg();
+            myVIE.loadSchema("../../utils/schemaOrg/all.json", {
+                baseNS : "http://schema.org/",
+                success : function () {
+                    console.log("successfully loaded schema.org ontology!");
+                },
+                error : function (e) {
+                    console.log("successfully loaded schema.org ontology!");
+                }
+            });
                         
             $('article > section')
             .attr("title", "Click on the text to trigger the enhancement engine.")
@@ -47,7 +46,7 @@
                     vie : myVIE,
                     services: {
                         'rdfa' : {
-                            use: false,
+                            use: true,
                             service: myVIE.RdfaService
                         },
                         'stanbol' : {
@@ -58,26 +57,16 @@
                     element: $(this),
                     filter: ["Person"],
                     label: [function (entity) {
-                        if (entity.has("givenName")) {
-                            var givenName = entity.get("givenName");
-                            var name = entity.get("name");
-                            var lbl = ($.isArray(givenName))? givenName[0] : givenName;
-                            lbl += " ";
-                            lbl += ($.isArray(name))? name[0] : name;
-							return lbl.replace(/"/g, "").replace(/@[a-z]+/, '');
-                        } else {
-                            var name = entity.get("name");
-                            var lbl = ($.isArray(name))? name[0] : name;
-							return lbl.replace(/"/g, "").replace(/@[a-z]+/, '');
-                        }
+                        return $.view.vieAutoTag.prototype._extractString(entity, ["name", "rdfs:label"]);
                     }]
                 });
                $('#tag_container .places .tags')
                 .vieAutoTag({
                     vie : myVIE,
+                    lang : ["en", "de"],
                     services: {
                         'rdfa' : {
-                            use: false,
+                            use: true,
                             service: myVIE.RdfaService
                         },
                         'stanbol' : {
@@ -87,7 +76,7 @@
                     },
                     element: $(this),
                     filter: ["Place"],
-                    label: ["Thing.name"]
+                    label: ["Place.name"]
                 });
             });
             
