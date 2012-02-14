@@ -23,18 +23,14 @@
     <br /><br />
         <pre class="sh_javascript_dom">
 ...
-&lt;!--  jQuery &amp; jQuery UI -->
-&lt;script type="text/javascript" src="../../lib/jquery-1.6.1.js">&lt;/script>
-&lt;script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js">&lt;/script>
+&lt;!--  vie.js including dependencies -->
+&lt;script type="text/javascript" src="../../lib/vie-ALL-2.0.0alpha1.debug.js">&lt;/script>
+&lt;script type="text/javascript" src="../../lib/jquery.rdfquery.js">&lt;/script>
 
-&lt;!--  VIE dependencies: Underscore &amp; Backbone -->
-&lt;script type="text/javascript" src="../../lib/underscore.js">&lt;/script>        
-&lt;script type="text/javascript" src="../../lib/backbone.js">&lt;/script>
+&lt;script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js">&lt;/script>
   
 &lt;!-- vie.js itself -->
 &lt;script type="text/javascript" src="../../lib/vie.js">&lt;/script>
-&lt;script type="text/javascript" src="../../utils/schemaOrg/schema.json">&lt;/script>
-&lt;script type="text/javascript" src="../../utils/schemaOrg/wrapper.js">&lt;/script>
 
 &lt;!--  the current VIE widget -->
 &lt;script type="text/javascript" src="./vie.widget.auto_tagger.js">&lt;/script>
@@ -48,7 +44,15 @@ Now, we need to set-up the widget and bind it to certain events:
     $(function() {
         // initialize a global VIE object
         var myVIE = window.myVIE = new VIE();
-        myVIE.loadSchemaOrg();
+        myVIE.loadSchema("../../utils/schemaOrg/all.json", {
+            baseNS : "http://schema.org/",
+            success : function () {
+                console.log("successfully loaded schema.org ontology!");
+            },
+            error : function (e) {
+                console.log("could not load schema.org ontology!");
+            }
+        });
         
         $('article > section')
         .click(function (ev) {
