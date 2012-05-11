@@ -1,15 +1,23 @@
 <html>
 <head>
 	<title>VIE Widget - Image Search</title>
+    <link href="../../utils/style.css" media="screen" rel="stylesheet">    
     
-    <link href="../../utils/style.css" media="screen" rel="stylesheet">
-    
-    <!-- vie.js including dependencies -->
-    <script type="text/javascript" src="../../lib/vie-ALL-2.0.0alpha1.debug.js"></script>
+    <script type="text/javascript">
+        if (window.JSON === undefined ) { 
+            document.write('<' + 'script src="https://raw.github.com/douglascrockford/JSON-js/master/json2.js">/script>"></' + 'script>');
+        }
+    </script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script> 
+    <script type="text/javascript" src="../../lib/underscore.js"></script> 
+    <script type="text/javascript" src="../../lib/backbone.js"></script> 
     <script type="text/javascript" src="../../lib/jquery.rdfquery.js"></script>   
     
+    <!-- vie.js excluding dependencies -->
+    <script type="text/javascript" src="../../lib/vie-2.0.0.debug.js"></script>
+    
     <!-- jQuery UI -->
-    <script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.js"></script>
     <script type="text/javascript"          src="../../utils/tiptip/jquery.tipTip.js"></script>
     <link rel="stylesheet" type="text/css" href="../../utils/tiptip/jquery.tipTip.css" media="screen" />
     
@@ -20,9 +28,18 @@
     <!-- DEMO-specific code -->
     <script type="text/javascript">
         $(function() {
+        	
+        	var error = window.error = function (msg) {
+        		$('#warning').html($('#warning').html() + msg + "<br />")
+        		.slideDown(300)
+        		.click(function () {
+        			$(this).slideUp(300).html("");
+        		});
+        	};
+        	
             // initialize a global VIE object
             var myVIE = window.myVIE = new VIE();
-            myVIE.loadSchema("../../utils/schemaOrg/all.json", {
+            myVIE.loadSchema("http://schema.rdfs.org/all.json", {
                 baseNS : "http://schema.org/",
                 success : function () {
                     // read RDFa from the text below
@@ -33,9 +50,24 @@
                     finishSetUp();
                 },
                 error : function (e) {
-                    console.log("could not load schema.org ontology!");
+                    error("could not init schema.org ontology!");
+                    error("could not init schema.org ontology!");
                 }
             });
+            
+
+            $('#servicestouse').click(function () {
+            	var services = [];
+            	var widget = $('#image_container').data("vieImageSearch");
+            	for (var serviceId in widget.options.services) {
+            		$('#image_container').vieImageSearch("useService", serviceId, false);
+            	}
+            	$(" option:selected", this).each (function () {
+            		var serviceId = $(this).val();
+            		$('#image_container').vieImageSearch("useService", serviceId, true);
+            	});
+            });
+
             
             function finishSetUp () {
                 var moreButton = $('<button>')
@@ -43,28 +75,43 @@
                     .text("More images...")
                     .click(function () {
                         var widget = $('#image_container').data("vieImageSearch");
-                        widget.triggerSearch(widget.options.entity, widget.options.page_num+1);
+                        var page_num = $('#image_container').data("page_num");
+                        $('#image_container').data("page_num", page_num+1);
+                        widget.triggerSearch(widget.options.entity, page_num+1);
                     });
                     
                 // set-up of the Image-widget
                 $('#image_container')
                 .before(moreButton)
                 .vieImageSearch({
-                    vie    : myVIE,
-                    bin_size: 8,
-                    services : {
+                    vie         : myVIE,
+                    max_objects : 8,
+                    services    : {
                         flickr : {
                             api_key : "ffd6f2fc41249feeddd8e62a531dc83e",
-                            use: false
+                            use: true,
+                            weight: 1.0
                         },
                         gimage : {
-                            use: true
+                            use: true,
+                            weight: 1.0
+                        },
+                        ookaboo : {
+                            use: true,
+                            weight: 1.0
                         }
                     }
-                });
-    
+                })
+                .bind('vieimagesearcherror',
+				    function (ev, da) {
+                		error("There is no information about the entity &lt;" + da.id + "&gt; in VIE.");
+				    }
+				);
+                
                 $('[about]')
                 .click(function (ev) {
+                	$('[about].selected').removeClass("selected");
+                	$(this).addClass("selected");
                     var uri = $(this).attr('about');
                     $('#image_container')
                     .vieImageSearch({
@@ -74,7 +121,6 @@
                 .attr("title", "Click on an entity to trigger a type-specific photo search.")
                 .tipTip();
             }
-            
         });
     </script>
     
@@ -84,15 +130,44 @@
         }
         
         #image_container a img {
-            box-shadow: 0px 0px 10px #555;
             margin: 1em 1em;
             width: 6em;
             height: auto;
         }
+        
+        #image_container a img.ookaboo {
+            box-shadow: 0px 0px 10px red;
+        }
+        
+        #image_container a img.flickr {
+            box-shadow: 0px 0px 10px blue;
+            margin: 1em 1em;
+            width: 6em;
+            height: auto;
+        }
+        
+        #image_container a img.gimage {
+            box-shadow: 0px 0px 10px green;
+            margin: 1em 1em;
+            width: 6em;
+            height: auto;
+        }
+             
+		[about] {
+		 text-shadow: 0 0 0.2em #87F, 0 0 0.2em #87F;
+		 cursor: pointer;
+		}
+		
+		[about]:hover, [about].selected {
+		 text-shadow: 0 0 0.2em #8F7, 0 0 0.2em #8F7;
+		 cursor: pointer;
+		}
+        
     </style>
     
 </head>
 <body>
+<div id="warning"></div>
 <div id="wrapper">
     <h1>VIE Widget - Image Search</h1>
    <article>
@@ -121,11 +196,18 @@
     <br />
     </article>
     
+    <div>Choose services to be used:</div>
+    <select id="servicestouse" multiple="multiple">
+	  <option value="ookaboo" selected="selected">Ookaboo (Stanbol)</option>
+	  <option value="gimage" selected="selected">Google Images</option>
+	  <option value="flickr" selected="selected">Flickr</option>
+	</select>
     <div id="image_container"></div>
     
     <div class="copyright">
         This site uses the <a href="http://www.flickr.com/services/api/">Flickr API</a>! <br />However it is not associated or endorsed by <a href="http://www.flickr.com/">Flickr</a>.<br />
         This site uses the <a href="http://code.google.com/apis/imagesearch/">Google Image API</a>! <br />However it is not associated or endorsed by <a href="http://www.google.com">Google</a>.
+        This site uses the <a href="http://about.ookaboo.com/a/about/what_is_ookaboo">Ookaboo Semantic API</a>! <br />However it is not associated or endorsed by <a href="http://ookaboo.com">Ookaboo</a>.
     </div>
     <div style="text-align:center;margin-top:20px;" class="tellmemore">
       <h3>Tutorial</h3>

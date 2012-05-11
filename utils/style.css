@@ -94,12 +94,27 @@ h3 {
   text-align: center;
 }
 
-[about] {
- text-shadow: 0 0 0.2em #87F, 0 0 0.2em #87F;
- cursor: pointer;
+#warning {
+	border: 3px solid orange;
+	border-top: 0px;
+	border-bottom-left-radius: 5px 5px;
+	border-bottom-right-radius: 5px 5px;
+	background-color: #FFFEA1;
+	position: fixed;
+	width: 380px;
+	height: 80px;
+	padding: 10px;
+	top: 0px;
+	left: 50%;
+	margin-left: -200px;
+	display:none;
+	font-family: "Courier";
+	font-size: 10px;
 }
 
-[about]:hover {
- text-shadow: 0 0 0.2em #8F7, 0 0 0.2em #8F7;
- cursor: pointer;
+#warning:after {
+	content: "Click to dismiss message!";
+	position: absolute;
+	bottom: 0px;
+	left: 5px;
 }
