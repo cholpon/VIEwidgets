@@ -5,7 +5,7 @@
     <link href="../../utils/style.css" media="screen" rel="stylesheet">
     
     <!--  jQuery &amp; jQuery UI -->
-    <script type="text/javascript" src="../../lib/jquery-1.6.1.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
     <script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js"></script>
         
     <!-- SHJS -->
@@ -23,14 +23,12 @@
     <br /><br />
         <pre class="sh_javascript_dom">
 ...
-&lt;!--  vie.js including dependencies -->
-&lt;script type="text/javascript" src="../../lib/vie-ALL-2.0.0alpha1.debug.js">&lt;/script>
-&lt;script type="text/javascript" src="../../lib/jquery.rdfquery.js">&lt;/script>
-
-&lt;script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js">&lt;/script>
-  
-&lt;!-- vie.js itself -->
-&lt;script type="text/javascript" src="../../lib/vie.js">&lt;/script>
+&lt;script type="text/javascript" src=".../jquery.js">&lt;/script>
+&lt;script type="text/javascript" src=".../underscore.js">&lt;/script>
+&lt;script type="text/javascript" src=".../backbone.js">&lt;/script>
+&lt;script type="text/javascript" src=".../jquery.rdfquery.js">&lt;/script>
+&lt;script type="text/javascript" src=".../vie-2.0.0.js">&lt;/script>
+&lt;script type="text/javascript" src=".../jquery-ui.js">&lt;/script>
 
 &lt;!--  the current VIE widget -->
 &lt;script type="text/javascript" src="./vie.widget.image_search.js">&lt;/script>
@@ -44,37 +42,49 @@ Now, we can read-in the embedded <a target="_blank" href="">RDFa</a> annotations
         $(function() {
             // initialize a global VIE object
             var myVIE = window.myVIE = new VIE();
-            myVIE.loadSchema("../../utils/schemaOrg/all.json", {
+            myVIE.loadSchema("http://schema.rdfs.org/all.json", {
                 baseNS : "http://schema.org/",
                 success : function () {
-                    setUp();
+                    // read RDFa from the trext in the HTML
+                    myVIE.use(new myVIE.RdfaService);
+                    myVIE.load({element: $('[about]')}).using('rdfa').execute();
+                    
+                    finishSetUp();
                 },
                 error : function (e) {
-                    console.log("could not load schema.org ontology!");
+                    //....
                 }
             });
-            function setUp () {
-                // read RDFa from the text below
-                myVIE.use(new myVIE.RdfaService);
-                myVIE.load({element: $('[about]')})
-                .from('rdfa').execute();
             
-                // set-up of the Flickr-widget
+            function finishSetUp () {
+                // set-up of the Image-widget
                 $('#image_container')
                 .vieImageSearch({
-                    vie    : myVIE,
-                	bin_size: 8,
-                    services : {
+                    // your local VIE instance
+                    vie         : myVIE,
+                    // the maximal number of elements to query each service for
+                    max_objects : 8,
+                    // setup of each service
+                    services    : {
                         flickr : {
-                            api_key : "ffd6f2fc41249feeddd8e62a531dc83e",
-                        	use: true
+                            api_key : "&lt;your_FLICKR_API_KEY_HERE&gt;",
+                            // whether to use it or not
+                            use: true,
+                            // some weight for the relevance sorting algorithm
+                            weight: 1.0
                         },
                         gimage : {
-                            use: true
+                            use: true,
+                            weight: 1.0
+                        },
+                        ookaboo : {
+                            use: true,
+                            weight: 1.0
                         }
                     }
                 });
             }
+         });
 </pre>
 <br />
 And finally, registering the annotated RDFa elements with a <i>click-event handler</i> to trigger the semantic
@@ -82,13 +92,11 @@ image search:
 <br /><br />
 <pre class="sh_javascript_dom">
             $('[about]')
-            .click(function (ev) {
-                var uri = $(this).attr('about');
-                $('#image_container')
-                .vieImageSearch({
-                    entity: uri
-                });
-            });
+             .click(function () {
+                 $('#image_container').vieImageSearch({
+                     entity: $(this).attr('about')
+                 });
+             });
 </pre>
 <br />
 <b>User:</b> "Great! But this searches only for <i>Persons</i> and <i>Places</i>... How can I extend it?"<br />
@@ -97,60 +105,222 @@ image search:
 <pre class="sh_javascript_dom">
             $('#image_container')
             .vieImageSearch({
-                vie    : myVIE,
-                ts_url : { //type-specific rendering of <Entity-Type, Service> tuples
+               //URLs are generated dependence of the given &lt;Entity-Type, Service> tuple
+                ts_url : {
                     "Product" : {
-                        'europeana' : function (entity, serviceId) {
-                            var url = "";
-                            if (entity.has("brand") && entity.has("model")) {
-                                var brand = entity.get("brand").get("name");
-                                var model = entity.get("model");
-                                url += "&text=" + brand + " " + model;
-                            } else {
-                                return undefined;
-                            }
-                            return url;
+                        'gimage' : function (entity, serviceId) {
+                            var widget = this;
+			        		var service = widget.options.services[serviceId];
+			        		var url = service.base_url.replace("\/$", "");
+	                        
+	                        if (entity.has("brand")) {
+	                        	var brand = entity.get("brand");
+	                        	var brandName = 
+	                        		VIE.Util.extractLanguageString(
+	                        		    brand, 
+	                        		    ["name", "rdf:label"], 
+	                        		    widget.options.lang);
+	                            url += "&q=" + brandName.replace(/ /g, '+'); // *no* type-specific keywords
+	    		        		url += (service.tail_url)? service.tail_url(widget, service) : "";
+	                            return url;
+	                        } else {
+	                        	return undefined;
+	                        }
                         }
                     }
                 },
-                services : {
-                    'europeana' : {
-                        use       : false,
-                        query : function (entity, serviceId, widget, queryId) {
-                            var mainUrl = widget._getUrlMainPartFromEntity(entity, serviceId);
-                            if (mainUrl) {
-                                // assemble the URL
-                                var url = this.base_url;
-                                url += mainUrl;
-                                url += this.tail_url(widget, this);
-                                // trigger the search & receive the data via callback
-                                $.getJSON(url, this.callback(widget, entity.id, serviceId, queryId));
-                            } else {
-                                widget._trigger("error", undefined, {
-                                    msg: "No type-specific URL can be acquired for entity. Please add/overwrite widget.options[<widget_type>][" + serviceId + "]!", 
-                                    id : entityId, 
-                                    service : serviceId, 
-                                    queryId : queryId});
-                            }
-                        },
-                        callback  : function (widget, entityId, serviceId, queryId) {
-                            return function (data) {
-                                  var photos = [];
-                                  //TO BE IMPLEMENTED: extract photos from data into
-                                  // the 'photos' object
-                                  
-                                  //trigger the presentation:
-                                  var data = {entityId : entityId, serviceId: serviceId, queryId : queryId, time: new Date(), photos: photos};
-                                  widget._trigger('end_query', undefined, data);
-                                  widget.render(data);
-                              };
-                        }
+                ts_data : { //data is generated in dependence of the given &lt;Entity-Type, Service> tuple
+                    "Product" : {
+                        'ookaboo' : function (entity, serviceId) {
+                            var widget = this;
+	                		var service = widget.options.services[serviceId];
+	                		// this might return some data, usually not needed
+	                		return ...;
+	            		}
                     }
                 }
             });
+</pre>
+<br />
+<b>User:</b> "Nice! And how can I extend it to query my own CMS repository?"<br />
+<b>Me:  </b> "Phew... Tough one... Not! (assuming you have implemented it with proper <a href="http://enable-cors.org/">CORS</a> support!)"<br />
+"What you need is to add another service to the options like shown below and implement the following skeleton:"
+<br /><br />
+<pre class="sh_javascript_dom">
+$('#image_container').vieImageSearch({
+	services : {
+	    'myowncmsimageservicebackend' : {
+                use       : {true|false},
+	    		weight    : 1.0,
+	            api_key   : undefined,
+	            base_url  : "...",
+	            // this method performs the query and forwards the result to the callback!
+	            query : function (serviceId, entity, queryId) {
+	            	var widget = this;
+	            	var service = widget.options.services[serviceId];
+	            	var ret = widget._entityToUrlData.call(widget, entity, serviceId);
+	            	jQuery.ajax({
+                   		url : ret["url"],
+                   		data : JSON.stringify(ret["data"]),
+                   		dataType : "application/json",
+                   		contentType : "application/json",
+                   		type : "POST",
+                   		complete : service.callback(widget, entity.getSubjectUri(), serviceId, queryId)
+               		});
+	            },
+	            tail_url  : function (widget, service) {
+	                var url = "&sort=relevance";
+	                url += "&max_elements=" + widget.options.max_objects;
+	                url += "&api_key=" + service.api_key;
+	                url += "format=json";
+	                
+	                return url;
+	            },
+	            // this method transforms the raw data into the VIE world!
+	            callback  : function (widget, entityId, serviceId, queryId) {
+	                return function (response) {
+	                    var objects = [];
+	                    //...
+	                	var data = {entityId : entityId, serviceId: serviceId, queryId : queryId, time: new Date(), objects: objects};
+                        widget._trigger('end_query', undefined, data);
+                        widget.render(data);
+	                };
+                }
+	    }
+	}
+});
+</pre>
+<b>Me:  </b> "Eventually that would look something like that:"<br/><br/>
+<pre class="sh_javascript_dom">
+   $('#image_container').vieImageSearch({
+       services : {
+           'myowncmsimageservicebackend' : {
+                use       : true,
+	    		weight    : 1.0,
+	            api_key   : undefined,
+	            base_url  : "http://mycms.com/images/?method=related",
+	            query : function (serviceId, entity, queryId) {
+	            	var widget = this;
+	            	var service = widget.options.services[serviceId];
+	            	var ret = widget._entityToUrlData.call(widget, entity, serviceId);
+	            	
+	            	if (ret && ret["url"]) {
+	            		jQuery.getJSON(ret["url"], 
+	            			service.callback(widget, entity.getSubjectUri(), serviceId, queryId));
+	            	} else {
+	            		widget._trigger("error", undefined, {
+	                         msg: "No type-specific URL can be acquired for entity. Please add/overwrite widget.options[\"Thing\"][" + serviceId + "]!", 
+	                         id : entity.getSubjectUri(), 
+	                         service : serviceId, 
+	                         queryId : queryId});
+	            	}
+	            },
+	            tail_url  : function (widget, service) {
+	                var url = "&sort=relevance";
+	                url += "&max_elements=" + widget.options.max_objects;
+	                url += "&api_key=" + service.api_key;
+	                url += "format=json";
+	                
+	                return url;
+	            },
+	            callback  : function (widget, entityId, serviceId, queryId) {
+	                return function (data) {
+	                	  var service = widget.options.services[serviceId];
+	                      var objects = [];
+	                      if (data.stat === 'ok' && data.photos.total > 0) {
+	                          //put them into bins
+	                          for (var i = 0; i < data.photos.photo.length; i++) {
+	                              var photo = data.photos.photo[i];
+	                              
+	                              var obj = {
+	                           		  "weight" : (service.weight)? service.weight : 1.0,
+	                                      "thumbnail" : photo["thumbnail"],
+	                                      "original" : photo["origional"],
+	                                      "height" : photo["height"],
+	                                      "width" : photo["width"]
+	                              };
+	                              objects.push(obj);
+	                          }
+	                      }
+	                      var data = {entityId : entityId, serviceId: serviceId, queryId : queryId, time: new Date(), objects: objects};
+	                      widget._trigger('end_query', undefined, data);
+	                      widget.render(data);
+	                  };
+	            }
+           }
+       }
+   });
         </pre>
+<br />
+<b>User:</b> "Awesome! Are there any other options/events/methods, I should know about?"<br />
+<b>Me:  </b> "Not that many... Here they are:"
+<br />
+<h3>Events</h3>
+<h4>Pre-init</h4>
+<pre class="sh_javascript_dom">
+    // the event is thrown when a service-query is started
+    $('#image_container').bind('vieimagesearchstart_query', function (ev) {...});
+    // the event is thrown when a service-query ends
+    $('#image_container').bind('vieimagesearchend_query', function (ev) {...});
+    // the event is thrown when a warning arised
+    $('#image_container').bind('vieimagesearchwarn', function (ev) {...});
+    // the event is thrown when an error happened
+    $('#image_container').bind('vieimagesearcherror', function (ev) {...});
+</pre>
+<h3>Options</h3>
+<h4>Post-init</h4>
+<pre class="sh_javascript_dom">
+    // the instance of VIE
+    $('#image_container').vieImageSearch("option", "vie", myVIE);
+    // the maximal number of elements to be queried from each service
+    $('#image_container').vieImageSearch("option", "max_objects", 10);
+    // an array of languages that is used to perform language-specific queries
+    $('#image_container').vieImageSearch("option", "lang", ["en", "de", "es", ...]);
+    // a timeout if the queries take too long. default: 10 seconds
+    $('#image_container').vieImageSearch("option", "timeout", 1000);
+    // you might probably want to change the rendering of the images.
+    // using the options, you can overwrite the "render" key with a method
+    // that takes an array of VIE Entities (typeof 'VIEImageResult') 
+    // as input to render the images
+    $('#image_container').vieImageSearch("option", "render", function (objEntities) {...});
+</pre>
+<h3>Options</h3>
+<h4>Pre-init</h4>
+<pre class="sh_javascript_dom">
+    $('#image_container').vieImageSearch({
+        "vie"         : myVIE,
+        "render"      : function (objEntities) {...},
+        "max_objects" : 10,
+        "lang"        : ["en", "de", "es", ...],
+        "timeout"     : 10000,
+        "services"    : {
+            "flickr" :  {
+                "use" : {true|false},
+                "weight" : 1.0,
+                "api_key" : "...",
+                "base_url" : "..."
+                ...
+            },
+            ...
+        }
+    });
+</pre>
+
+<h3>Methods</h3>
+<pre class="sh_javascript_dom">
+    // get the widget's instance
+    var widget = $('#image_container').data("vieImageSearch");
+    
+    // list all available services
+    widget.options.services;
+
+    // change to use a service, e.g., gimages, post-init)
+    $('#image_container').vieImageSearch("useService", 'gimage', {true|false});
+</pre>
     </article>
     <div style="text-align:center;margin-top:20px;" class="goback">
+      If that documentation is of no help for you, do not hesitate to contact me. I am a friendly
+      person who loves to support you with integrating the widget in your site.<br />
       Click <a style="color:#31e;" href="index.html">here</a> to go back to the demo.
     </div>
     <div style="width:130px;margin-left:auto;margin-right:auto;margin-top:20px;" class="download">

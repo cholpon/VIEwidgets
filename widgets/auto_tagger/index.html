@@ -27,17 +27,35 @@
     <!-- DEMO-specific code -->
     <script type="text/javascript">
         $(function() {
-            // initialize a global VIE object
+
+        	var error = window.error = function (msg) {
+        		$('#warning').html($('#warning').html() + msg + "<br />")
+        		.slideDown(300)
+        		.click(function () {
+        			$(this).slideUp(300).html("");
+        		});
+        	};
+        	
+        	// initialize a global VIE object
             var myVIE = window.myVIE = new VIE();
-            myVIE.loadSchema("../../utils/schemaOrg/all.json", {
+            myVIE.loadSchema("http://schema.rdfs.org/all.json", {
                 baseNS : "http://schema.org/",
                 success : function () {
-                    console.log("successfully loaded schema.org ontology!");
+                    // read RDFa from the text below
+                    myVIE.use(new myVIE.RdfaService);
+                    myVIE.load({element: $('[about]')})
+                    .using('rdfa').execute();
+                    
+                    finishSetUp();
                 },
                 error : function (e) {
-                    console.log("could not load schema.org ontology!");
+                    error("could not init schema.org ontology!");
                 }
             });
+            
+            function finishSetUp () {
+                // set-up of the Image-widget
+            };
                         
             $('article > section')
             .attr("title", "Click on the text to trigger the enhancement engine.")
@@ -100,6 +118,7 @@
     
 </head>
 <body>
+<div id="warning"></div>
 <div id="wrapper">
     <h1>VIE Widget - Auto tagging</h1>
    <article>

@@ -51,7 +51,6 @@
                 },
                 error : function (e) {
                     error("could not init schema.org ontology!");
-                    error("could not init schema.org ontology!");
                 }
             });
             
@@ -70,19 +69,8 @@
 
             
             function finishSetUp () {
-                var moreButton = $('<button>')
-                    .addClass("more-button")
-                    .text("More images...")
-                    .click(function () {
-                        var widget = $('#image_container').data("vieImageSearch");
-                        var page_num = $('#image_container').data("page_num");
-                        $('#image_container').data("page_num", page_num+1);
-                        widget.triggerSearch(widget.options.entity, page_num+1);
-                    });
-                    
                 // set-up of the Image-widget
                 $('#image_container')
-                .before(moreButton)
                 .vieImageSearch({
                     vie         : myVIE,
                     max_objects : 8,
@@ -98,7 +86,8 @@
                         },
                         ookaboo : {
                             use: true,
-                            weight: 1.0
+                            weight: 1.0,
+                            base_url : "http://dev.iks-project.eu:8081"
                         }
                     }
                 })
@@ -135,9 +124,16 @@
             height: auto;
         }
         
-        #image_container a img.ookaboo {
+        .ookaboo {
             box-shadow: 0px 0px 10px red;
         }
+        .flickr {
+            box-shadow: 0px 0px 10px blue;
+        }
+        .gimage {
+            box-shadow: 0px 0px 10px green;
+        }
+        
         
         #image_container a img.flickr {
             box-shadow: 0px 0px 10px blue;
@@ -161,6 +157,13 @@
 		[about]:hover, [about].selected {
 		 text-shadow: 0 0 0.2em #8F7, 0 0 0.2em #8F7;
 		 cursor: pointer;
+		}
+		
+		.legend {
+			padding: 2px;
+			border-radius: 8px;
+			margin-left: 5px;
+			margin-right: 5px;
 		}
         
     </style>
@@ -198,15 +201,21 @@
     
     <div>Choose services to be used:</div>
     <select id="servicestouse" multiple="multiple">
-	  <option value="ookaboo" selected="selected">Ookaboo (Stanbol)</option>
-	  <option value="gimage" selected="selected">Google Images</option>
 	  <option value="flickr" selected="selected">Flickr</option>
+	  <option value="gimage" selected="selected">Google Images</option>
+	  <option value="ookaboo" selected="selected">Ookaboo (Stanbol)</option>
 	</select>
-    <div id="image_container"></div>
+    <div id="image_container" style="min-height:100px;"></div>
+	<div id="legend" style="margin-top: 20px; margin-bottom:20px; font-size: 90%;">
+		The shadow of each image decodes what service the images has been retrieved from:
+		<span class="legend ookaboo">Ookaboo (Stanbol)</span>
+		<span class="legend flickr">Flickr</span>
+		<span class="legend gimage">Google Images</span>
+	</div>
     
     <div class="copyright">
         This site uses the <a href="http://www.flickr.com/services/api/">Flickr API</a>! <br />However it is not associated or endorsed by <a href="http://www.flickr.com/">Flickr</a>.<br />
-        This site uses the <a href="http://code.google.com/apis/imagesearch/">Google Image API</a>! <br />However it is not associated or endorsed by <a href="http://www.google.com">Google</a>.
+        This site uses the <a href="http://code.google.com/apis/imagesearch/">Google Image API</a>! <br />However it is not associated or endorsed by <a href="http://www.google.com">Google</a>.<br />
         This site uses the <a href="http://about.ookaboo.com/a/about/what_is_ookaboo">Ookaboo Semantic API</a>! <br />However it is not associated or endorsed by <a href="http://ookaboo.com">Ookaboo</a>.
     </div>
     <div style="text-align:center;margin-top:20px;" class="tellmemore">

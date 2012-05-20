@@ -21,7 +21,7 @@
         	}
         },
         
-        _triggerSearch: function (entityUri, pageNum) {
+        _triggerSearch: function (entityUri) {
             var widget = this;
             
             if (widget.options.timer) {
@@ -32,7 +32,6 @@
             var queryId = this.options.query_id;
             
             widget.options.objects = {};
-            widget.options.page_num = (pageNum)? pageNum : 0;
             
             var entity = undefined;
             if (typeof entityUri === "string") {
@@ -133,7 +132,7 @@
             for (var p = 0; p < objEntities.length && p < widget.options.max_objects; p++) {
                 var object = objEntities[p];
                 var imgEntity = widget.options.vie.entities.get(object.get("object"));
-                var image = $('<a class="' + widget.widgetBaseClass + '-image " target="_blank" href="' + imgEntity.get("image") + '"></a>')
+                var image = $('<a class="' + widget.widgetBaseClass + '-image " target="_blank" href="' + imgEntity.get("image").getSubjectUri().replace(/[<>]/g, "") + '"></a>')
                     .append($("<img class=\"" + object.get("service") + "\" src=\"" + (imgEntity.getSubjectUri()).replace(/[<>]/g, "")  + "\" width=\"50px\" />"));
                 $(widget.element).append(image);
             }
@@ -348,7 +347,7 @@
                         var url = "&safe=" + service.safe;                    
                         url += "&hl=" + widget.options["lang"][0];    
                         url += "&rsz=" + widget.options.max_objects;
-                        url += "&start=" + (widget.options.page_num * widget.options.max_objects);
+                        url += "&start=0";
                         url += "&callback=?";
                         
                         return url;
@@ -410,7 +409,7 @@
                     tail_url  : function (widget, service) {
                         var url = "&sort=" + service.sort;
                         url += "&per_page=" + widget.options.max_objects;
-                        url += "&page=" + widget.options.page_num;
+                        url += "&page=1";
                         url += "&api_key=" + service.api_key;
                         url += "&safe_search=" + service.safe; // safe search
                         url += "&extras=geo,media,url_m,url_z&format=json&jsoncallback=?";
@@ -610,7 +609,7 @@
                 		var widget = this;
                 		var service = widget.options.services[serviceId];
                 		return {
-                			   "ldpath": "@prefix oo : <http://rdf.ookaboo.com/object/>; schema:name = oo:label; schema:image = ^oo:depicts; owl:samAs;",
+                			   "ldpath": "@prefix oo : <http://rdf.ookaboo.com/object/>; schema:name = oo:label; schema:image = ^oo:depicts; owl:sameAs;",
                 			   "constraints": [
                 			       {
                 			           "type": "reference",
