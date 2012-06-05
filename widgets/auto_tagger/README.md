@@ -1,4 +1,4 @@
-VIE widget - Flickr Search
+VIE widget - Auto tagger
 ===========
 
 This widget ...

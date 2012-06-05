@@ -42,11 +42,6 @@
             myVIE.loadSchema("http://schema.rdfs.org/all.json", {
                 baseNS : "http://schema.org/",
                 success : function () {
-                    // read RDFa from the text below
-                    myVIE.use(new myVIE.RdfaService);
-                    myVIE.load({element: $('[about]')})
-                    .using('rdfa').execute();
-                    
                     finishSetUp();
                 },
                 error : function (e) {
@@ -59,27 +54,33 @@
                 .attr("title", "Click on the text to trigger the enhancement engine.")
                 .tipTip()
                 .click(function (ev) {
-                	$(this).vieAutoTag();
+                	$(this).vieAutoTag("tagit");
                 })
                 .vieAutoTag({
                     vie : myVIE,
                     lang : ["en", "de", "es"],
+                    append : true,
                     services : {
-                    	
-                    }
+                    	stanbol : {use : true}
+                    },
                     bins : [{
                             	element : $('#persons'),
                             	filter: ["Person"],
                             	label: function (entity) {
-                                	return VIE.Util.extractLanguageString(entity, ["name", "rdfs:label"], this.options.lang);
+                                	return VIE.Util.getPreferredLangForPreferredProperty(entity, ["name", "rdfs:label"], this.options.lang);
                                 }
                             },
                             {
                             	element : $('#places'),
                             	filter: ["Place"],
-                            	label: ["Place.name"]
+                            	label: ["name"]
                             }]
-                });
+                })
+                .bind('vieautotagerror',
+                    function (ev, da) {
+                        error("Problem occurred: " + da + ".");
+                    }
+                );
             }; 
         });
     </script>
@@ -103,7 +104,7 @@
           list-style:none;
         }
         
-        #tag_container .tag {
+        #tag_container li {
             box-shadow: 0px 0px 10px #ddd;
             margin: 10px 8px;
             padding: 2px 6px;

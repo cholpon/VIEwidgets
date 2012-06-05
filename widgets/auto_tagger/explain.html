@@ -5,7 +5,7 @@
     <link href="../../utils/style.css" media="screen" rel="stylesheet">
     
     <!--  jQuery &amp; jQuery UI -->
-    <script type="text/javascript" src="../../lib/jquery-1.6.1.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
     <script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js"></script>
         
     <!-- SHJS -->
@@ -23,14 +23,12 @@
     <br /><br />
         <pre class="sh_javascript_dom">
 ...
-&lt;!--  vie.js including dependencies -->
-&lt;script type="text/javascript" src="../../lib/vie-ALL-2.0.0alpha1.debug.js">&lt;/script>
-&lt;script type="text/javascript" src="../../lib/jquery.rdfquery.js">&lt;/script>
-
-&lt;script type="text/javascript" src="../../lib/jquery-ui-1.8.16.js">&lt;/script>
-  
-&lt;!-- vie.js itself -->
-&lt;script type="text/javascript" src="../../lib/vie.js">&lt;/script>
+&lt;script type="text/javascript" src=".../jquery.js">&lt;/script>
+&lt;script type="text/javascript" src=".../underscore.js">&lt;/script>
+&lt;script type="text/javascript" src=".../backbone.js">&lt;/script>
+&lt;script type="text/javascript" src=".../jquery.rdfquery.js">&lt;/script>
+&lt;script type="text/javascript" src=".../vie-2.0.0.js">&lt;/script>
+&lt;script type="text/javascript" src=".../jquery-ui.js">&lt;/script>
 
 &lt;!--  the current VIE widget -->
 &lt;script type="text/javascript" src="./vie.widget.auto_tagger.js">&lt;/script>
@@ -40,45 +38,129 @@
 Now, we need to set-up the widget and bind it to certain events:
 <br /><br />
 <pre class="sh_javascript_dom">
-&lt;script type="text/javascript">
-    $(function() {
-        // initialize a global VIE object
-        var myVIE = window.myVIE = new VIE();
-        myVIE.loadSchema("../../utils/schemaOrg/all.json", {
-            baseNS : "http://schema.org/",
-            success : function () {
-                console.log("successfully loaded schema.org ontology!");
-            },
-            error : function (e) {
-                console.log("could not load schema.org ontology!");
-            }
-        });
-        
-        $('article > section')
-        .click(function (ev) {
-            $('#tag_container .persons .tags')
-            .vieAutoTag({
-                render : undefined, // can be a function to allow customized rendering
-                // takes an array of VIE entities as parameter.
-                append : true, // if set to false, pre-selected entities will be removed
-                vie : myVIE, // the current VIE instance
-                services: { // the VIE-service(s) to be used
-                    'rdfa' : { // we read the RDFa information from the page
-                        use: true,
-                        service: myVIE.RdfaService
-                    }
+    &lt;script type="text/javascript">
+        $(function() {
+            // initialize a global VIE object
+            var myVIE = window.myVIE = new VIE();
+            myVIE.loadSchema("http://schema.rdfs.org/all.json", {
+                baseNS : "http://schema.org/",
+                success : function () {
+                    finishSetUp();
                 },
-                element: $(this), // the section to be analyzed
-                filter: ["Person"], // we are currently only interested in 'Person's
-                label: ["Person.givenName", "Person.name"] // the label of the tag,
-                // if a property of a type is not available, the next template will be taken
-                // this can also be a function and supports full ontological hierarchy of VIE
+                error : function (e) {
+                    //...
+                }
             });
+            
+            function finishSetUp () {
+                $('article > section')
+                .click(function (ev) {
+                    // perform the auto-tagging
+                    $(this).vieAutoTag("tagit");
+                })
+                // set-up of the widget
+                .vieAutoTag({
+                    // your local VIE instance
+                    vie : myVIE,
+                    // language-order to be checked for
+                    lang : ["en", "de", "es"],
+                    // append new entities or create new list
+                    append : true,
+                    // setup of each service (default: use is set to false)
+                    services : {
+                        stanbol : {use : true},
+                        zemanta : {use : true, api_key : "&lt;your_FLICKR_API_KEY_HERE&gt;"},
+                        rdfa    : {use : true},
+                    },
+                    // each bin is defined as an object, containing:
+                    // (1) element: the element, the entities should be added to
+                    // (2) filter: either a function that checks for each entity
+                    //             if that entity should be shown in the current 
+                    //             element, OR, an array of strings that represent
+                    //             VIE.Types to be checked for.
+                    // (3) label  : either a method that extracts a label from an
+                    //              entity (needs to return a string), OR an array
+                    //              of attributes.
+                    bins : [{
+                                element : $('#persons'),
+                                filter: ["Person"],
+                                label: function (entity) {
+                                    return VIE.Util.getPreferredLangForPreferredProperty(
+                                        entity, 
+                                        ["name", "rdfs:label"], 
+                                        this.options.lang);
+                                }
+                            },
+                            {
+                                element : $('#places'),
+                                filter: function (entity) {
+                                            return entity.isof("Place")
+                                        },
+                                label: ["name"]
+                            }]
+                });
+            }; 
         });
 </pre>
-<br />
-</article>
+<h3>Events</h3>
+<h4>Pre-init</h4>
+<pre class="sh_javascript_dom">
+    // the event is thrown when a service-query is started
+    $('...').bind('vieautotagstart_query', function (ev) {...});
+    // the event is thrown when a service-query ends
+    $('...').bind('vieautotagend_query', function (ev) {...});
+    // the event is thrown when a warning arised
+    $('...').bind('vieautotagwarn', function (ev) {...});
+    // the event is thrown when an error happened
+    $('...').bind('vieautotagerror', function (ev) {...});
+</pre>
+<h3>Options</h3>
+<h4>Post-init</h4>
+<pre class="sh_javascript_dom">
+    // the instance of VIE
+    $('...').vieAutoTag("option", "vie", myVIE);
+    // an array of languages that is used to perform language-specific queries
+    $('...').vieAutoTag("option", "lang", ["en", "de", "es", ...]);
+    // append new entities or create new list
+    $('...').vieAutoTag("option", "append", {true|false});
+    // a timeout if the queries take too long. default: 10 seconds
+    $('...').vieAutoTag("option", "timeout", 1000);
+    // each bin is defined as an object, containing (see above)
+    $('...').vieAutoTag("option", "bins", 
+        [{
+            element : $(...),
+            filter: ["Thing"],
+            label: ["name", "rdfs:label"]
+        }]
+    );
+</pre>
+<h3>Options</h3>
+<h4>Pre-init</h4>
+<pre class="sh_javascript_dom">
+    $('...').vieAutoTag({
+        "vie"         : myVIE,
+        "lang"        : ["en", "de", "es", ...],
+        "timeout"     : 10000,
+        "append"      : {true|false},
+        "bins"        : [{...}, ...]
+    });
+</pre>
+    
+<h3>Methods</h3>
+<pre class="sh_javascript_dom">
+    // get the widget's instance
+    var widget = $('...').data("vieAutoTag");
+    
+    // list all available services
+    widget.options.services;
+
+    // change to use a service, e.g., stanbol, post-init)
+    $('...').vieAutoTag("useService", 'stanbol', {true|false});
+</pre>
+    </article>
     <div style="text-align:center;margin-top:20px;" class="goback">
+      If that documentation is of no help for you, do not hesitate to contact me. I am a friendly
+      person who loves to support you with integrating the widget in your site.<br />
       Click <a style="color:#31e;" href="index.html">here</a> to go back to the demo.
     </div>
     <div style="width:130px;margin-left:auto;margin-right:auto;margin-top:20px;" class="download">
