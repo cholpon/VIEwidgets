@@ -13,37 +13,56 @@
             return this;
         },
         
+        _init: function () {
+            this.tagit();
+        },
+        
+        useService : function (serviceId, use) {
+        	if (this.options.services[serviceId]) {
+        		this.options.services[serviceId]["use"] = (use === undefined)? true : use;
+        	}
+        },
+        
         clear : function () {
         	if (widget.options.entities)
         		widget.options.entities.reset();
         	return this;
         },
         
-        tagit : function (elem) {
+        tagit : function () {
         	debugger;
             var widget = this;
-            var $source = $(elem);
-            var $target = $(widget.element);
+            var $source = $(widget.element);
             
             if (!widget.options.append) {
             	widget.options.entities.reset();
             }
             
-            var queryId = new Date().getTime();
-            
+            var queryPerformed = false;
             _.each(widget.options.services, function (s) {
                 widget.options.vie
-                .analyze({element: elem})
+                .analyze({element: $source})
                 .using(s)
                 .execute()
                 .done(function (entities) {
                 	widget.options.entities.addOrUpdate(entities);
                 })
                 .fail(function (e) {
-                    console.warn(e);
+                	widget._trigger('warn', undefined, {msg: e});
                 });
+                queryPerformed = true;
+                widget._trigger('start_query', undefined, {service : s, time: new Date()});
             });
-//            widget._trigger('start_query', undefined, {service : s, time: new Date()});
+            if (queryPerformed) {
+            	widget.options.timer = setTimeout(function (widget) {
+                    return function () {
+                        // discard all results that return after this timeout happened
+                        widget.options.query_id++;
+                    };
+                }(widget), widget.options.timeout, "JavaScript");
+            } else {
+            	widget._trigger('error', undefined, {msg: "No services registered! Please use $(...).vieAutoTag('useService', 'stanbol', true)"});
+            }
             return this;
         },
         
@@ -65,25 +84,39 @@
             vie         : new VIE(),
             lang        : ["en"],
             append      : true,
-            label       : [],
-            filter      : [],
+            bins        : [],
             services    : {
                 'stanbol' : {
                     use: false,
+                    instance : function () {
+                    	
+                    }
+                },
+                'zemanta' : {
+                    use: false,
+                    instance : function () {
+                    	
+                    }
                 },
                 'rdfa' : {
-                    use: false
+                    use: false,
+                    instance : function () {
+                    	
+                    }
                 }
             },
             
             // helper
             render: undefined,
             entities: undefined,
+            query_id: 0,
+            timeout : 10000,
             
             // events
-            start_query: function () {},
-            end_query: function () {}
+            start_query : function () {},
+            end_query   : function () {},
+            warn        : function () {},
+            error       : function () {}
         }
-        
     });
 })(jQuery);

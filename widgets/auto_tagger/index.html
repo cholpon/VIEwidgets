@@ -24,6 +24,7 @@
     <!--  the current VIE widget -->
 	<script type="text/javascript" src="./vie.widget.auto_tagger.js"></script>
     
+    
     <!-- DEMO-specific code -->
     <script type="text/javascript">
         $(function() {
@@ -54,32 +55,32 @@
             });
             
             function finishSetUp () {
-                // set-up of the Image-widget
-            };
-                        
-            $('article > section')
-            .attr("title", "Click on the text to trigger the enhancement engine.")
-            .tipTip()
-            .click(function (ev) {
-            	$(this).vieAutoTag();
-            })
-            .vieAutoTag({
-                vie : myVIE,
-                lang : ["en", "de", "es"],
-                services: ['rdfa', 'stanbol'],
-                filter: ["Person"],
-                label: function (entity) {
-                	return VIE.Util.extractLanguageString(entity, ["name", "rdfs:label"], this.options.lang);
-                }
-            });
-           $('#places')
-            .vieAutoTag({
-                vie : myVIE,
-                lang : ["en", "de", "es"],
-                services: ['rdfa', 'stanbol'],
-                filter: ["Place"],
-                label: ["Place.name"]
-            });
+            	$('article > section')
+                .attr("title", "Click on the text to trigger the enhancement engine.")
+                .tipTip()
+                .click(function (ev) {
+                	$(this).vieAutoTag();
+                })
+                .vieAutoTag({
+                    vie : myVIE,
+                    lang : ["en", "de", "es"],
+                    services : {
+                    	
+                    }
+                    bins : [{
+                            	element : $('#persons'),
+                            	filter: ["Person"],
+                            	label: function (entity) {
+                                	return VIE.Util.extractLanguageString(entity, ["name", "rdfs:label"], this.options.lang);
+                                }
+                            },
+                            {
+                            	element : $('#places'),
+                            	filter: ["Place"],
+                            	label: ["Place.name"]
+                            }]
+                });
+            }; 
         });
     </script>
     
